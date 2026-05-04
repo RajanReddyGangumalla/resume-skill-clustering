@@ -1,0 +1,20 @@
+John Doe
+Software Engineer
+
+Experience:
+- Python developer with 5 years of experience
+- Worked with Django, Flask, and FastAPI
+- Experience with React, JavaScript, and HTML/CSS
+- Database skills: PostgreSQL, MongoDB, SQL
+- Cloud technologies: AWS, Docker, Kubernetes
+- Machine Learning: TensorFlow, scikit-learn, pandas
+
+Education:
+Bachelor of Science in Computer Science
+
+Skills:
+Programming Languages: Python, JavaScript, Java, C++
+Frameworks: Django, Flask, React, Angular
+Databases: PostgreSQL, MongoDB, MySQL
+Cloud: AWS, Azure, Docker, Kubernetes
+ML/AI: TensorFlow, PyTorch, scikit-learn
