@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Star, Users, Brain, MapPin, TrendingUp, Award, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ClusterResponse } from '../types';
-import PCAVisualization from './PCAVisualization';
+import PCAVisualization from './PCAVisualizationCanvas';
 
 interface ResultsProps {
   results: ClusterResponse;
@@ -280,6 +280,7 @@ const Results: React.FC<ResultsProps> = ({ results, userText }) => {
             </p>
           </div>
         )}
+      </motion.div>
     </div>
   );
 };

@@ -17,7 +17,8 @@ export interface ClusterResponse {
   skills: Record<string, number>;
   similar_students: number;
   total_skills: number;
-  pca_coordinates: [number, number];
+  pca_coordinates: number[];
+  extracted_text?: string;
 }
 
 export interface VisualizationPoint {

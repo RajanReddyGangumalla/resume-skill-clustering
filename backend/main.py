@@ -29,7 +29,7 @@ app = FastAPI(
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # React dev server
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3005"],  # React dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,6 +46,7 @@ class ClusterResponse(BaseModel):
     similar_students: int
     total_skills: int
     pca_coordinates: List[float]
+    extracted_text: Optional[str] = None
 
 class DatasetInfo(BaseModel):
     n_samples: int
@@ -128,7 +129,7 @@ def get_cluster_profiles(model):
             dominant_score = category_scores[dominant_category]
             
             # Lower threshold to ensure more clusters get meaningful names
-            if dominant_score > 0.02:  # Lowered from 0.1 to 0.02
+            if dominant_score > 0.01:  # Lowered from 0.02 to 0.01
                 cluster_profiles[cluster_id] = dominant_category
             else:
                 # Fallback to descriptive names based on top skills
@@ -137,9 +138,21 @@ def get_cluster_profiles(model):
                     skill_names = [idx.replace('_', ' ').title() for idx in top_skills.index[:2]]
                     cluster_profiles[cluster_id] = f"{' & '.join(skill_names)} Specialist"
                 else:
-                    cluster_profiles[cluster_id] = f"Technical Professional {cluster_id}"
+                    # More descriptive fallback names
+                    fallback_names = [
+                        "Software Developer", "IT Professional", "Systems Engineer", 
+                        "Technical Specialist", "Application Developer", "Systems Analyst",
+                        "Technology Consultant", "Software Architect", "Engineering Professional"
+                    ]
+                    cluster_profiles[cluster_id] = fallback_names[cluster_id % len(fallback_names)]
         else:
-            cluster_profiles[cluster_id] = f"Technical Professional {cluster_id}"
+            # More descriptive fallback names for empty category scores
+            fallback_names = [
+                "Software Developer", "IT Professional", "Systems Engineer", 
+                "Technical Specialist", "Application Developer", "Systems Analyst",
+                "Technology Consultant", "Software Architect", "Engineering Professional"
+            ]
+            cluster_profiles[cluster_id] = fallback_names[cluster_id % len(fallback_names)]
     
     return cluster_profiles
 
@@ -186,6 +199,19 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "model_loaded": model is not None}
+
+@app.post("/api/reload-clusters")
+async def reload_clusters():
+    """Reload cluster profiles with new names"""
+    global cluster_profiles
+    try:
+        if model:
+            cluster_profiles = get_cluster_profiles(model)
+            return {"status": "success", "message": "Cluster profiles reloaded", "clusters": cluster_profiles}
+        else:
+            raise HTTPException(status_code=500, detail="Model not loaded")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reload clusters: {str(e)}")
 
 @app.get("/api/dataset-info", response_model=DatasetInfo)
 async def get_dataset_info():
@@ -248,9 +274,74 @@ async def get_clusters_visualization():
     
     return {"data": visualization_data}
 
+def get_meaningful_cluster_name(cluster_id, cluster_df):
+    """Get meaningful cluster name for a given cluster"""
+    # Define comprehensive skill categories for profiling
+    skill_categories = {
+        'Web Developer': ['html', 'css', 'javascript', 'react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'bootstrap', 'jquery'],
+        'Data Scientist': ['python', 'machine_learning', 'deep_learning', 'tensorflow', 'pytorch', 'scikit_learn', 'pandas', 'numpy', 'matplotlib', 'seaborn'],
+        'Backend Developer': ['java', 'python', 'sql', 'spring', 'django', 'flask', 'postgresql', 'mongodb', 'mysql', 'api'],
+        'Mobile Developer': ['android', 'ios', 'react_native', 'flutter', 'kotlin', 'swift', 'mobile', 'xamarin'],
+        'DevOps Engineer': ['aws', 'azure', 'docker', 'kubernetes', 'linux', 'jenkins', 'git', 'ci_cd', 'terraform', 'ansible'],
+        'Business Analyst': ['excel', 'power_bi', 'tableau', 'sql', 'sap', 'salesforce', 'analytics', 'reporting'],
+        'AI/ML Engineer': ['machine_learning', 'deep_learning', 'tensorflow', 'pytorch', 'keras', 'opencv', 'nlp', 'computer_vision'],
+        'Full Stack Developer': ['javascript', 'python', 'react', 'node', 'sql', 'html', 'css', 'mongodb', 'express'],
+        'Database Administrator': ['sql', 'mysql', 'postgresql', 'oracle', 'mongodb', 'database', 'nosql', 'redis'],
+        'Cloud Architect': ['aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform', 'cloud', 'microservices'],
+        'Software Engineer': ['java', 'python', 'c++', 'javascript', 'algorithms', 'data_structures', 'oop', 'testing'],
+        'Frontend Developer': ['html', 'css', 'javascript', 'react', 'angular', 'vue', 'typescript', 'sass', 'webpack'],
+        'Data Engineer': ['python', 'sql', 'spark', 'hadoop', 'etl', 'data_pipeline', 'airflow', 'kafka'],
+        'Security Engineer': ['security', 'cryptography', 'networking', 'penetration_testing', 'firewall', 'ssl', 'authentication'],
+        'QA Engineer': ['testing', 'automation', 'selenium', 'junit', 'quality_assurance', 'bug_tracking', 'test_cases'],
+        'Product Manager': ['product_management', 'agile', 'scrum', 'requirements', 'roadmap', 'stakeholder', 'analytics'],
+        'System Administrator': ['linux', 'windows', 'networking', 'server', 'monitoring', 'backup', 'scripting'],
+        'Game Developer': ['unity', 'unreal', 'c++', 'c#', 'game_development', 'graphics', 'animation', 'physics'],
+        'Blockchain Developer': ['blockchain', 'solidity', 'ethereum', 'bitcoin', 'smart_contracts', 'web3', 'cryptocurrency'],
+        'IoT Developer': ['iot', 'embedded', 'arduino', 'raspberry_pi', 'sensors', 'mqtt', 'edge_computing']
+    }
+    
+    # Calculate category scores for this cluster
+    category_scores = {}
+    for category, skills in skill_categories.items():
+        available_skills = [s for s in skills if s in cluster_df.columns]
+        if available_skills:
+            score = cluster_df[available_skills].mean().mean()
+            category_scores[category] = score
+    
+    # Determine the dominant category with lower threshold
+    if category_scores:
+        dominant_category = max(category_scores, key=category_scores.get)
+        dominant_score = category_scores[dominant_category]
+        
+        # Lower threshold to ensure more clusters get meaningful names
+        if dominant_score > 0.01:  # Lowered from 0.02 to 0.01
+            return dominant_category
+        else:
+            # Fallback to descriptive names based on top skills
+            top_skills = cluster_df.select_dtypes(include=[np.number]).mean().sort_values(ascending=False).head(3)
+            if len(top_skills) > 0:
+                skill_names = [idx.replace('_', ' ').title() for idx in top_skills.index[:2]]
+                return f"{' & '.join(skill_names)} Specialist"
+            else:
+                # More descriptive fallback names
+                fallback_names = [
+                    "Software Developer", "IT Professional", "Systems Engineer", 
+                    "Technical Specialist", "Application Developer", "Systems Analyst",
+                    "Technology Consultant", "Software Architect", "Engineering Professional"
+                ]
+                return fallback_names[cluster_id % len(fallback_names)]
+    else:
+        # More descriptive fallback names for empty category scores
+        fallback_names = [
+            "Software Developer", "IT Professional", "Systems Engineer", 
+            "Technical Specialist", "Application Developer", "Systems Analyst",
+            "Technology Consultant", "Software Architect", "Engineering Professional"
+        ]
+        return fallback_names[cluster_id % len(fallback_names)]
+
 @app.post("/api/pca-visualization")
 async def get_pca_visualization_with_user(request: TextAnalysisRequest):
-    """Get PCA coordinates with user position"""
+    """Get PCA coordinates including user position"""
     if not model:
         raise HTTPException(status_code=500, detail="Model not loaded")
     
@@ -259,23 +350,25 @@ async def get_pca_visualization_with_user(request: TextAnalysisRequest):
         clean = clean_text(request.text)
         user_skills = extract_skills(clean, model['skill_keywords'])
         
-        # Create feature vector
+        # Get user features
         user_features = np.array([user_skills.get(skill, 0) for skill in model['feature_columns']])
         
-        # Get user PCA coordinates
+        # Transform user features using the same PCA
         user_pca = model['pca'].transform(model['scaler'].transform(user_features.reshape(1, -1)))
         
-        # Get base data
+        # Get base PCA coordinates for all students
         base_pca = model['pca_coordinates']
         cluster_labels = model['cluster_labels']
+        df = model['df_with_skills']
+        cluster_col = f"{model['best_algorithm']}_cluster"
         
         visualization_data = []
         
-        # Add base data points
+        # Add all student points with meaningful names
         for i, (x, y) in enumerate(base_pca):
             cluster_id = int(cluster_labels[i])
-            cluster_name = cluster_profiles.get(cluster_id, f"Cluster {cluster_id}")
-            
+            cluster_df = df[df[cluster_col] == cluster_id]
+            cluster_name = get_meaningful_cluster_name(cluster_id, cluster_df)
             visualization_data.append({
                 "x": float(x),
                 "y": float(y),
@@ -284,11 +377,13 @@ async def get_pca_visualization_with_user(request: TextAnalysisRequest):
                 "is_user": False
             })
         
-        # Add user point
+        # Add user point with meaningful name
         user_cluster = model['clustering_algorithm'].fit_predict(
             model['scaler'].transform(np.vstack([model['df_with_skills'][model['feature_columns']].values, user_features]))
         )[-1]
-        user_cluster_name = cluster_profiles.get(user_cluster, f"Cluster {user_cluster}")
+        
+        user_cluster_df = df[df[cluster_col] == user_cluster]
+        user_cluster_name = get_meaningful_cluster_name(user_cluster, user_cluster_df)
         
         visualization_data.append({
             "x": float(user_pca[0, 0]),
@@ -299,7 +394,7 @@ async def get_pca_visualization_with_user(request: TextAnalysisRequest):
         })
         
         return {"data": visualization_data}
-    
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PCA visualization failed: {str(e)}")
 
@@ -337,12 +432,13 @@ async def analyze_text(request: TextAnalysisRequest):
         cluster_name = cluster_profiles.get(user_cluster, f"Cluster {user_cluster}")
         
         return ClusterResponse(
-            cluster_id=user_cluster,
+            cluster_id=int(user_cluster),
             cluster_name=cluster_name,
             skills=user_skills,
             similar_students=similar,
             total_skills=int(sum(user_skills.values())),
-            pca_coordinates=[float(user_pca[0, 0]), float(user_pca[0, 1])]
+            pca_coordinates=[float(user_pca[0, 0]), float(user_pca[0, 1])],
+            extracted_text=clean
         )
     
     except Exception as e:

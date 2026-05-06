@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScatterPlot } from 'react-plotly.js';
-import { MapPin, Users, TrendingUp } from 'lucide-react';
+import { MapPin, Users, TrendingUp, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getPCAVisualizationWithUser } from '../services/api';
 import { VisualizationPoint } from '../types';
@@ -14,10 +13,13 @@ const PCAVisualization: React.FC<PCAVisualizationProps> = ({ userText, isActive 
   const [data, setData] = useState<VisualizationPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [hoveredPoint, setHoveredPoint] = useState<VisualizationPoint | null>(null);
 
   const colors = [
     '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
-    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1'
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+    '#14b8a6', '#a855f7', '#22c55e', '#eab308', '#dc2626'
   ];
 
   useEffect(() => {
@@ -39,6 +41,10 @@ const PCAVisualization: React.FC<PCAVisualizationProps> = ({ userText, isActive 
       setLoading(false);
     }
   };
+
+  const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.2, 3));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.2, 0.5));
+  const handleReset = () => setZoom(1);
 
   if (!isActive) {
     return null;
@@ -79,9 +85,6 @@ const PCAVisualization: React.FC<PCAVisualizationProps> = ({ userText, isActive 
   const userPoint = data.find(point => point.is_user);
   const clusterPoints = data.filter(point => !point.is_user);
 
-  // Create traces for each cluster
-  const traces: any[] = [];
-  
   // Group cluster points by cluster
   const clusterGroups = clusterPoints.reduce((groups, point) => {
     if (!groups[point.cluster_id]) {
@@ -91,133 +94,57 @@ const PCAVisualization: React.FC<PCAVisualizationProps> = ({ userText, isActive 
     return groups;
   }, {} as Record<number, VisualizationPoint[]>);
 
-  // Add trace for each cluster
-  Object.entries(clusterGroups).forEach(([clusterId, points]) => {
-    const clusterName = points[0].cluster_name;
-    const color = colors[parseInt(clusterId) % colors.length];
-    
-    traces.push({
-      x: points.map(p => p.x),
-      y: points.map(p => p.y),
-      mode: 'markers',
-      type: 'scatter',
-      name: clusterName,
-      marker: {
-        size: 6,
-        color: color,
-        opacity: 0.7,
-        line: {
-          color: 'white',
-          width: 1
-        }
-      },
-      hovertemplate: `<b>${clusterName}</b><br>` +
-                     `PC1: %{x:.3f}<br>` +
-                     `PC2: %{y:.3f}<extra></extra>`
-    });
-  });
-
-  // Add user trace
-  if (userPoint) {
-    traces.push({
-      x: [userPoint.x],
-      y: [userPoint.y],
-      mode: 'markers',
-      type: 'scatter',
-      name: `You: ${userPoint.cluster_name}`,
-      marker: {
-        size: 20,
-        color: 'red',
-        symbol: 'star',
-        line: {
-          color: 'white',
-          width: 3
-        }
-      },
-      hovertemplate: `<b>You: ${userPoint.cluster_name}</b><br>` +
-                     `PC1: %{x:.3f}<br>` +
-                     `PC2: %{y:.3f}<extra></extra>`
-    });
-  }
-
-  const layout = {
-    title: {
-      text: 'Your Position in the Skill Cluster Map',
-      font: {
-        size: 16,
-        color: '#ffffff',
-        family: 'Inter'
-      }
-    },
-    xaxis: {
-      title: 'PC1 (Principal Component 1)',
-      gridcolor: '#334155',
-      zerolinecolor: '#334155',
-      color: '#e2e8f0',
-      titlefont: { color: '#e2e8f0' }
-    },
-    yaxis: {
-      title: 'PC2 (Principal Component 2)',
-      gridcolor: '#334155',
-      zerolinecolor: '#334155',
-      color: '#e2e8f0',
-      titlefont: { color: '#e2e8f0' }
-    },
-    plot_bgcolor: '#0f172a',
-    paper_bgcolor: '#1e293b',
-    font: {
-      color: '#e2e8f0',
-      family: 'Inter'
-    },
-    legend: {
-      x: 1.02,
-      y: 1,
-      bgcolor: '#1e293b',
-      bordercolor: '#334155',
-      borderwidth: 1,
-      font: {
-        color: '#e2e8f0'
-      }
-    },
-    margin: {
-      l: 50,
-      r: 50,
-      t: 50,
-      b: 50
-    },
-    height: 500,
-    hovermode: 'closest'
-  };
-
-  const config = {
-    responsive: true,
-    displayModeBar: true,
-    displaylogo: false,
-    modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d'],
-    toImageButtonOptions: {
-      format: 'png',
-      filename: 'skill-cluster-map',
-      height: 500,
-      width: 700,
-      scale: 2
-    }
-  };
+  // Calculate bounds for proper scaling
+  const allPoints = [...clusterPoints, ...(userPoint ? [userPoint] : [])];
+  const xValues = allPoints.map(p => p.x);
+  const yValues = allPoints.map(p => p.y);
+  const xMin = Math.min(...xValues) - 0.5;
+  const xMax = Math.max(...xValues) + 0.5;
+  const yMin = Math.min(...yValues) - 0.5;
+  const yMax = Math.max(...yValues) + 0.5;
+  const xRange = xMax - xMin;
+  const yRange = yMax - yMin;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold text-white flex items-center">
           <MapPin className="w-6 h-6 mr-2 text-purple-400" />
-          PCA Visualization - Your Position in Skill Space
+          PCA Skill Space Visualization
         </h3>
-        <div className="flex items-center space-x-4 text-sm text-gray-400">
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 bg-red-500 rounded-full" />
-            <span>You</span>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 text-sm text-gray-400">
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-red-500 rounded-full" />
+              <span>You</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-blue-500 rounded-full" />
+              <span>Students</span>
+            </div>
           </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 bg-blue-500 rounded-full" />
-            <span>Other Students</span>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleZoomOut}
+              className="p-1 text-gray-400 hover:text-white transition-colors"
+              title="Zoom out"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleReset}
+              className="p-1 text-gray-400 hover:text-white transition-colors"
+              title="Reset zoom"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleZoomIn}
+              className="p-1 text-gray-400 hover:text-white transition-colors"
+              title="Zoom in"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -228,13 +155,140 @@ const PCAVisualization: React.FC<PCAVisualizationProps> = ({ userText, isActive 
         transition={{ duration: 0.3 }}
         className="bg-slate-800/30 rounded-lg border border-purple-500/20 p-4"
       >
-        <ScatterPlot
-          data={traces}
-          layout={layout}
-          config={config}
-          className="w-full"
-        />
+        <div className="relative w-full h-96 bg-slate-900/50 rounded-lg border border-purple-500/20 overflow-hidden">
+          <svg 
+            className="w-full h-full cursor-move" 
+            viewBox={`${xMin} ${yMin} ${xRange} ${yRange}`}
+            style={{ transform: `scale(${zoom})`, transformOrigin: 'center' }}
+          >
+            {/* Grid lines */}
+            {Array.from({ length: 10 }, (_, i) => {
+              const x = xMin + (i * xRange / 9);
+              const y = yMin + (i * yRange / 9);
+              return (
+                <g key={`grid-${i}`}>
+                  <line
+                    x1={x} y1={yMin} x2={x} y2={yMax}
+                    stroke="#334155" strokeWidth="0.01" opacity="0.3"
+                  />
+                  <line
+                    x1={xMin} y1={y} x2={xMax} y2={y}
+                    stroke="#334155" strokeWidth="0.01" opacity="0.3"
+                  />
+                </g>
+              );
+            })}
+
+            {/* Main axes */}
+            <line x1={xMin} y1={0} x2={xMax} y2={0} stroke="#64748b" strokeWidth="0.02" />
+            <line x1={0} y1={yMin} x2={0} y2={yMax} stroke="#64748b" strokeWidth="0.02" />
+            
+            {/* Cluster points */}
+            {Object.entries(clusterGroups).map(([clusterId, points]) => {
+              const color = colors[parseInt(clusterId) % colors.length];
+              return points.map((point, index) => (
+                <g key={`${clusterId}-${index}`}>
+                  <circle
+                    cx={point.x}
+                    cy={point.y}
+                    r={hoveredPoint === point ? "0.04" : "0.02"}
+                    fill={color}
+                    opacity="0.7"
+                    className="hover:opacity-100 transition-all cursor-pointer"
+                    onMouseEnter={() => setHoveredPoint(point)}
+                    onMouseLeave={() => setHoveredPoint(null)}
+                  />
+                  {hoveredPoint === point && (
+                    <text
+                      x={point.x}
+                      y={point.y - 0.06}
+                      fill="white"
+                      fontSize="0.06"
+                      textAnchor="middle"
+                      className="font-semibold pointer-events-none"
+                    >
+                      {point.cluster_name}
+                    </text>
+                  )}
+                </g>
+              ));
+            })}
+            
+            {/* User point - highlighted */}
+            {userPoint && (
+              <g>
+                <circle
+                  cx={userPoint.x}
+                  cy={userPoint.y}
+                  r="0.08"
+                  fill="#ef4444"
+                  stroke="white"
+                  strokeWidth="0.02"
+                  className="animate-pulse"
+                />
+                <text
+                  x={userPoint.x}
+                  y={userPoint.y - 0.12}
+                  fill="white"
+                  fontSize="0.08"
+                  textAnchor="middle"
+                  className="font-bold"
+                >
+                  YOU
+                </text>
+                <text
+                  x={userPoint.x}
+                  y={userPoint.y - 0.18}
+                  fill="#ef4444"
+                  fontSize="0.06"
+                  textAnchor="middle"
+                  className="font-semibold"
+                >
+                  {userPoint.cluster_name}
+                </text>
+              </g>
+            )}
+            
+            {/* Axis labels */}
+            <text x={xMax - 0.1} y="0.1" fill="#e2e8f0" fontSize="0.08" textAnchor="end">
+              PC1
+            </text>
+            <text x="0.1" y={yMin + 0.2} fill="#e2e8f0" fontSize="0.08">
+              PC2
+            </text>
+          </svg>
+
+          {/* Hover tooltip */}
+          {hoveredPoint && !hoveredPoint.is_user && (
+            <div className="absolute top-4 right-4 bg-slate-800/90 backdrop-blur-sm rounded-lg p-3 border border-purple-500/30 text-sm">
+              <p className="text-white font-semibold">{hoveredPoint.cluster_name}</p>
+              <p className="text-gray-400 text-xs">Cluster {hoveredPoint.cluster_id}</p>
+              <p className="text-gray-300 text-xs mt-1">
+                PC1: {hoveredPoint.x.toFixed(3)}, PC2: {hoveredPoint.y.toFixed(3)}
+              </p>
+            </div>
+          )}
+        </div>
       </motion.div>
+
+      {/* Cluster Legend */}
+      <div className="bg-slate-700/30 rounded-lg p-4 border border-purple-500/20">
+        <h4 className="text-sm font-medium text-purple-400 mb-3">Cluster Distribution</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {Object.entries(clusterGroups).map(([clusterId, points]) => {
+            const color = colors[parseInt(clusterId) % colors.length];
+            const clusterName = points[0].cluster_name;
+            return (
+              <div key={clusterId} className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full`} style={{ backgroundColor: color }} />
+                <span className="text-xs text-gray-300">
+                  {clusterName} ({points.length})
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
         <div className="bg-slate-700/30 rounded-lg p-3 border border-purple-500/20">
@@ -260,10 +314,10 @@ const PCAVisualization: React.FC<PCAVisualizationProps> = ({ userText, isActive 
         <div className="bg-slate-700/30 rounded-lg p-3 border border-purple-500/20">
           <div className="flex items-center space-x-2 mb-1">
             <Users className="w-4 h-4 text-purple-400" />
-            <span className="text-purple-400 font-medium">Clusters</span>
+            <span className="text-purple-400 font-medium">Total Points</span>
           </div>
           <p className="text-gray-300 text-xs">
-            Each color represents a different skill cluster group
+            {clusterPoints.length} students + 1 user = {data.length} total
           </p>
         </div>
       </div>
@@ -273,6 +327,9 @@ const PCAVisualization: React.FC<PCAVisualizationProps> = ({ userText, isActive 
           <p className="text-green-400 text-sm">
             🎯 You are positioned in the <span className="font-semibold">{userPoint.cluster_name}</span> cluster
             at coordinates ({userPoint.x.toFixed(3)}, {userPoint.y.toFixed(3)})
+          </p>
+          <p className="text-green-300 text-xs mt-1">
+            You are among {clusterGroups[userPoint.cluster_id]?.length || 0} other students with similar skill profiles
           </p>
         </div>
       )}

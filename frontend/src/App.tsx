@@ -59,10 +59,20 @@ function App() {
       console.log('Analysis result:', result);
       setResults(result);
       
-      // Extract text from file for PCA visualization
-      if (file.type === 'text/plain') {
-        const text = await file.text();
-        setLastUserText(text);
+      // Use the extracted text from the backend response for PCA visualization
+      if (result.extracted_text) {
+        setLastUserText(result.extracted_text);
+      } else if (file.type === 'text/plain') {
+        // Fallback: extract text directly for text files
+        try {
+          const text = await file.text();
+          setLastUserText(text);
+        } catch (textError) {
+          console.error('Error extracting text for PCA:', textError);
+          setLastUserText('TEXT_EXTRACTION_FAILED');
+        }
+      } else {
+        setLastUserText('NO_TEXT_AVAILABLE');
       }
       
       toast.success('Analysis completed successfully!');
