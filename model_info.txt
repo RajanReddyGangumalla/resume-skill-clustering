@@ -1,7 +1,7 @@
 Clustering Model Information
 ==============================
-best_algorithm: kmeans
-n_clusters: 10
+best_algorithm: hierarchical
+n_clusters: 12
 n_samples: 2483
 n_features: 66
-silhouette_score: 0.4920890373933644
+silhouette_score: 0.41553424784837095
