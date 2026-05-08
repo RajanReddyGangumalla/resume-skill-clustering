@@ -2,7 +2,7 @@ import axios from 'axios';
 import { DatasetInfo, ClusterDistribution, ClusterResponse, VisualizationData } from '../types';
 
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
+  ? 'https://resume-clustering-backend.onrender.com' 
   : 'http://localhost:8000';
 
 const api = axios.create({
