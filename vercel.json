@@ -7,23 +7,12 @@
       "config": {
         "distDir": "build"
       }
-    },
-    {
-      "src": "api/analyze-text.py",
-      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/analyze-text.py"
-    },
-    {
       "src": "/(.*)",
       "dest": "/frontend/$1"
     }
-  ],
-  "env": {
-    "PYTHON_VERSION": "3.9"
-  }
+  ]
 }
