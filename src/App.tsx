@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, FileText, BarChart3, Users, Brain, TrendingUp, Star, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { toast } from 'react-hot-toast';
 import FileUpload from './components/FileUpload';
 import TextInput from './components/TextInput';
 import Results from './components/Results';
@@ -31,7 +30,6 @@ function App() {
       setDatasetInfo(info);
       setClusterDistribution(distribution.distribution);
     } catch (error) {
-      toast.error('Failed to load dataset information');
       console.error('Error loading initial data:', error);
     }
   };
@@ -42,9 +40,7 @@ function App() {
       const result = await analyzeText(text);
       setResults(result);
       setLastUserText(text);
-      toast.success('Analysis completed successfully!');
     } catch (error) {
-      toast.error('Analysis failed. Please try again.');
       console.error('Text analysis error:', error);
     } finally {
       setLoading(false);
@@ -74,15 +70,12 @@ function App() {
       } else {
         setLastUserText('NO_TEXT_AVAILABLE');
       }
-      
-      toast.success('Analysis completed successfully!');
     } catch (error) {
       console.error('File analysis error:', error);
       if (error instanceof Error) {
         console.error('Error message:', error.message);
         console.error('Error stack:', error.stack);
       }
-      toast.error('File analysis failed. Please try again.');
     } finally {
       setLoading(false);
     }
