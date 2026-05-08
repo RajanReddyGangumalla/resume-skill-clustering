@@ -9,14 +9,14 @@
       }
     },
     {
-      "src": "backend/main.py",
+      "src": "api/analyze-text.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/main.py"
+      "dest": "/api/analyze-text.py"
     },
     {
       "src": "/(.*)",
@@ -25,10 +25,5 @@
   ],
   "env": {
     "PYTHON_VERSION": "3.9"
-  },
-  "functions": {
-    "backend/main.py": {
-      "maxDuration": 30
-    }
   }
 }
