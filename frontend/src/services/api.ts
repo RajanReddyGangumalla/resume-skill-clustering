@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { DatasetInfo, ClusterDistribution, ClusterResponse, VisualizationData } from '../types';
 
-const API_BASE_URL = 'https://resume-skill-clustering-new.vercel.app';
+const API_BASE_URL = 'https://your-backend-url.vercel.app';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
