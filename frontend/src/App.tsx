@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, BarChart3, Users, Brain, TrendingUp, Star, AlertCircle } from 'lucide-react';
+import { Upload, FileText, BarChart3, Brain, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import FileUpload from './components/FileUpload';

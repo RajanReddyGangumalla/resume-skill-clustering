@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, Users, Brain, MapPin, TrendingUp, Award, ChevronDown, ChevronUp } from 'lucide-react';
+import { Star, Users, Brain, MapPin, Award, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ClusterResponse } from '../types';
 import PCAVisualization from './PCAVisualizationCanvas';

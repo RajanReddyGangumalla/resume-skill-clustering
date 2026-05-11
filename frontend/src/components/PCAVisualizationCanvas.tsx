@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapPin, Users, TrendingUp, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getPCAVisualizationWithUser } from '../services/api';
@@ -16,7 +16,6 @@ const PCAVisualizationCanvas: React.FC<PCAVisualizationProps> = ({ userText, isA
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [hoveredPoint, setHoveredPoint] = useState<VisualizationPoint | null>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
 
   const colors = [
     '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
@@ -24,19 +23,7 @@ const PCAVisualizationCanvas: React.FC<PCAVisualizationProps> = ({ userText, isA
     '#14b8a6', '#a855f7', '#22c55e', '#eab308', '#dc2626'
   ];
 
-  useEffect(() => {
-    if (isActive && userText) {
-      loadVisualizationData();
-    }
-  }, [isActive, userText]);
-
-  useEffect(() => {
-    if (data.length > 0 && canvasRef.current) {
-      drawVisualization();
-    }
-  }, [data, zoom, hoveredPoint]);
-
-  const loadVisualizationData = async () => {
+  const loadVisualizationData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -49,9 +36,9 @@ const PCAVisualizationCanvas: React.FC<PCAVisualizationProps> = ({ userText, isA
     } finally {
       setLoading(false);
     }
-  };
+  }, [userText]);
 
-  const drawVisualization = () => {
+  const drawVisualization = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -59,8 +46,8 @@ const PCAVisualizationCanvas: React.FC<PCAVisualizationProps> = ({ userText, isA
     if (!ctx) return;
 
     // Set canvas size
-    canvas.width = canvasSize.width;
-    canvas.height = canvasSize.height;
+    canvas.width = 800;
+    canvas.height = 400;
 
     // Clear canvas
     ctx.fillStyle = '#0f172a';
@@ -224,7 +211,19 @@ const PCAVisualizationCanvas: React.FC<PCAVisualizationProps> = ({ userText, isA
       ctx.font = '12px Arial';
       ctx.fillText(userPoint.cluster_name, x, y - 40 * zoom);
     }
-  };
+  }, [data, zoom, hoveredPoint, colors]);
+
+  useEffect(() => {
+    if (isActive && userText) {
+      loadVisualizationData();
+    }
+  }, [isActive, userText, loadVisualizationData]);
+
+  useEffect(() => {
+    if (data.length > 0 && canvasRef.current) {
+      drawVisualization();
+    }
+  }, [data, zoom, hoveredPoint, drawVisualization]);
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.2, 3));
   const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.2, 0.5));
@@ -372,8 +371,8 @@ const PCAVisualizationCanvas: React.FC<PCAVisualizationProps> = ({ userText, isA
         <div className="relative w-full bg-slate-900/90 rounded-lg border border-purple-500/30 overflow-hidden shadow-2xl">
           <canvas
             ref={canvasRef}
-            width={canvasSize.width}
-            height={canvasSize.height}
+            width={800}
+            height={400}
             className="w-full cursor-pointer"
             onClick={handleCanvasClick}
             style={{ maxHeight: '400px' }}

@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, File, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, File, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface FileUploadProps {

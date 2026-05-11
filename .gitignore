@@ -62,3 +62,5 @@ output/
 
 # Logs
 *.log
+.vercel
+.env*.local

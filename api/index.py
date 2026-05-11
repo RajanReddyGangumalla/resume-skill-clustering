@@ -9,6 +9,7 @@ import io
 from pathlib import Path
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import PyPDF2
 
@@ -18,6 +19,15 @@ sys.path.insert(0, str(backend_path))
 
 # Create FastAPI app
 app = FastAPI()
+
+# Enable CORS for all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Data models
 class TextAnalysisRequest(BaseModel):
@@ -148,6 +158,42 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "model_loaded": model is not None}
+
+@app.get("/dataset-info")
+async def get_dataset_info():
+    """Get dataset information"""
+    if not model:
+        raise HTTPException(status_code=500, detail="Model not loaded")
+    
+    n_clusters = len(np.unique(model['cluster_labels']))
+    
+    return {
+        "n_samples": model['n_samples'],
+        "n_features": model['n_features'],
+        "n_clusters": n_clusters,
+        "best_algorithm": model['best_algorithm']
+    }
+
+@app.get("/cluster-distribution")
+async def get_cluster_distribution():
+    """Get cluster distribution data"""
+    if not model:
+        raise HTTPException(status_code=500, detail="Model not loaded")
+    
+    unique, counts = np.unique(model['cluster_labels'], return_counts=True)
+    
+    # Get meaningful names for clusters
+    cluster_names = [cluster_profiles.get(i, f"Cluster {i}") for i in unique]
+    
+    distribution = []
+    for i, (cluster_id, count, name) in enumerate(zip(unique, counts, cluster_names)):
+        distribution.append({
+            "cluster_id": int(cluster_id),
+            "cluster_name": name,
+            "count": int(count)
+        })
+    
+    return {"distribution": distribution}
 
 @app.post("/analyze-text", response_model=ClusterResponse)
 async def analyze_text(request: TextAnalysisRequest):
