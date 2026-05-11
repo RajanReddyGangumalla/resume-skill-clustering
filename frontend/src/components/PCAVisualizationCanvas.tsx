@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { MapPin, Users, TrendingUp, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getPCAVisualizationWithUser } from '../services/api';
@@ -17,11 +17,11 @@ const PCAVisualizationCanvas: React.FC<PCAVisualizationProps> = ({ userText, isA
   const [zoom, setZoom] = useState(1);
   const [hoveredPoint, setHoveredPoint] = useState<VisualizationPoint | null>(null);
 
-  const colors = [
+  const colors = useMemo(() => [
     '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
     '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
     '#14b8a6', '#a855f7', '#22c55e', '#eab308', '#dc2626'
-  ];
+  ], []);
 
   const loadVisualizationData = useCallback(async () => {
     setLoading(true);
