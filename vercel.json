@@ -1,22 +1,14 @@
 {
-  "version": 2,
   "builds": [
     {
-      "src": "backend/main.py",
+      "src": "main.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/backend/main.py"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "dest": "main.py"
     }
-  ],
-  "env": {
-    "PYTHON_VERSION": "3.9"
-  }
+  ]
 }
