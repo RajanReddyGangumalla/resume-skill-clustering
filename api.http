@@ -1,0 +1,35 @@
+### Test Deployed Backend Endpoints
+### Base URL: https://resume-skill-clustering.vercel.app
+
+### 1. Health Check
+GET https://resume-skill-clustering.vercel.app/health
+
+### 2. Dataset Info
+GET https://resume-skill-clustering.vercel.app/dataset-info
+
+### 3. Cluster Distribution
+GET https://resume-skill-clustering.vercel.app/cluster-distribution
+
+### 4. Analyze Text
+POST https://resume-skill-clustering.vercel.app/analyze-text
+Content-Type: application/json
+{
+  "text": "Sample resume text for testing"
+}
+
+### 5. Analyze File
+POST https://resume-skill-clustering.vercel.app/analyze-file
+Content-Type: multipart/form-data
+
+### 6. PCA Visualization
+POST https://resume-skill-clustering.vercel.app/pca-visualization
+Content-Type: application/json
+{
+  "text": "Sample resume text for testing"
+}
+
+### 7. Clusters Visualization
+GET https://resume-skill-clustering.vercel.app/clusters-visualization
+
+### Environment Variables
+- PYTHON_VERSION: 3.9
