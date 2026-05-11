@@ -264,4 +264,8 @@ async def get_pca_visualization_with_user(request: TextAnalysisRequest):
         raise HTTPException(status_code=500, detail=f"PCA visualization failed: {str(e)}")
 
 # Export for Vercel
-handler = app
+app = app
+
+# Vercel serverless function handler
+def handler(request):
+    return app(request)
