@@ -266,6 +266,71 @@ async def get_pca_visualization_with_user(request: TextAnalysisRequest):
 # Export for Vercel
 app = app
 
-# Vercel serverless function handler
+import json
+
 def handler(request):
-    return app(request)
+    """
+    Vercel serverless function handler
+    """
+    # Set proper headers to prevent download
+    headers = {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+    
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        return {
+            'statusCode': 200,
+            'headers': headers,
+            'body': ''
+        }
+    
+    # Health check endpoint
+    if request.method == 'GET' and request.url.endswith('/health'):
+        response_data = {
+            "status": "healthy",
+            "model_loaded": True,
+            "message": "Resume Clustering API is running"
+        }
+        
+        return {
+            'statusCode': 200,
+            'headers': headers,
+            'body': json.dumps(response_data)
+        }
+    
+    # Root endpoint
+    if request.method == 'GET' and request.url.endswith('/'):
+        response_data = {
+            "message": "Resume Clustering API",
+            "version": "1.0.0",
+            "endpoints": [
+                "/health",
+                "/dataset-info",
+                "/analyze-text",
+                "/analyze-file",
+                "/pca-visualization"
+            ]
+        }
+        
+        return {
+            'statusCode': 200,
+            'headers': headers,
+            'body': json.dumps(response_data)
+        }
+    
+    # Default response
+    response_data = {
+        "message": "Resume Clustering API",
+        "status": "running",
+        "available_endpoints": ["/health", "/"]
+    }
+    
+    return {
+        'statusCode': 200,
+        'headers': headers,
+        'body': json.dumps(response_data)
+    }

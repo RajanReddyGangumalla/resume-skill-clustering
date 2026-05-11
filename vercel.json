@@ -2,18 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/health.py",
+      "src": "api/index.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
-      "src": "/health",
-      "dest": "/api/health.py"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/api/health.py"
+      "dest": "/api/index.py"
     }
   ],
   "env": {
